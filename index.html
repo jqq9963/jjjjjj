@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>农产品溯源系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+   
+   
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 300px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease-in-out;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+        }
+
+        .trace-item {
+            border-left: 2px solid #e5e7eb;
+            padding-left: 1rem;
+            margin-left: 1rem;
+            position: relative;
+        }
+
+        .trace-item::before {
+            content: '';
+            position: absolute;
+            left: -0.375rem;
+            top: 0.25rem;
+            width: 0.75rem;
+            height: 0.75rem;
+            border-radius: 9999px;
+            background-color: #3b82f6;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 p-8">
+    <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">农产品溯源系统</h1>
+<h1 class="text-1xl font-bold text-center text-gray-600 mb-8">如有建议，请联系我们</h1>
+<h1 class="text-1xl font-bold text-center text-gray-600 mb-8">132-1152-3338</h1>
+    <div class="flex justify-center mb-8">
+        <input type="text" id="trace-code" class="border border-gray-300 rounded-md p-2 mr-4 w-64 focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="请输入溯源码">
+        <button id="search-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">查询</button>
+
+    </div>
+    <div class="bg-white p-8 rounded-md shadow-md">
+        <div class="flex flex-col md:flex-row">
+            <div class="md:w-1/3 mb-4 md:mb-0">
+                <img id="product-image" src="" class="w-full h-auto rounded-md" alt="农产品图片">
+
+
+            </div>
+            <div class="md:w-2/3 pl-0 md:pl-8">
+                <h2 id="product-name" class="text-2xl font-bold text-gray-800 mb-2"></h2>
+                <p class="text-gray-600 mb-1"><strong>类别:</strong> <span id="product-category"></span></p>
+                <p class="text-gray-600 mb-1"><strong>溯源码:</strong> <span id="product-code"></span></p>
+                <p class="text-gray-600 mb-1"><strong>生产日期:</strong> <span id="production-date"></span></p>
+                <p class="text-gray-600 mb-1"><strong>生产基地:</strong> <span id="production-base"></span></p>
+                <table class="table-auto w-full mb-4">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-2 text-left text-gray-600">检测项目</th>
+                            <th class="px-4 py-2 text-left text-gray-600">检测值</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="px-4 py-2 text-gray-700">兽药残留</td>
+                            <td class="px-4 py-2 text-gray-700" id="veterinary-drug-value"></td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-2 text-gray-700">重金属含量</td>
+                            <td class="px-4 py-2 text-gray-700" id="metal-value"></td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-2 text-gray-700" id="vitamin-label"></td>
+                            <td class="px-4 py-2 text-gray-700" id="vitamin-value"></td>
+                        </tr>
+                        <tr id="sugar-row">
+                            <td class="px-4 py-2 text-gray-700">糖度</td>
+                            <td class="px-4 py-2 text-gray-700" id="sugar-value"></td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-2 text-gray-700">新鲜度</td>
+                            <td class="px-4 py-2 text-gray-700" id="freshness-value"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <h3 class="text-xl font-bold text-gray-800 mt-8 mb-4">生产者信息</h3>
+        <div class="flex flex-col md:flex-row">
+            <div class="md:w-1/6 mb-4 md:mb-0">
+                <img id="farmer-avatar" src="" class="w-24 h-24 rounded-full" alt="生产者头像">
+            </div>
+            <div class="md:w-5/6 pl-0 md:pl-8">
+                <p class="text-gray-600 mb-1"><strong>姓名:</strong> <span id="farmer-name"></span></p>
+                <p class="text-gray-600 mb-1"><strong>职位:</strong> <span id="farmer-position"></span></p>
+                <p class="text-gray-600 mb-1"><strong>地址:</strong> <span id="farm-address"></span></p>
+                <p class="text-gray-600 mb-1"><strong>电话:</strong> <span id="farm-phone"></span></p>
+                <p class="text-gray-600 mb-1"><strong>认证信息:</strong> <span id="farm-certification"></span></p>
+                <p class="text-gray-600 mb-1"><strong>农场规模:</strong> <span id="farm-size"></span></p>
+                <p class="text-gray-600"><strong>农场描述:</strong> <span id="farm-description"></span></p>
+            </div>
+        </div>
+        <h3 class="text-xl font-bold text-gray-800 mt-8 mb-4">溯源时间线</h3>
+        <div id="trace-timeline" class="space-y-4"></div>
+    </div>
+    <script>
+        // 农产品溯源数据
+        const productsData = {
+            "F-001": {
+                name: "有机西红柿",
+                category: "蔬菜类",
+                code: "F-001",
+                productionDate: "2024-06-15",
+                productionBase: "绿野有机农场",
+                imageUrl: "https://pic.616pic.com/photoone/00/02/62/618cf5669158f3430.jpg!/fw/1120",
+                traceTimeline: [
+                    {
+                        date: "2024-03-01",
+                        title: "播种",
+                        location: "绿野有机农场, 山东济南",
+                        description: "选用优质有机西红柿种子，在肥沃土壤中播种。",
+                        icon: "fa-solid fa-seedling",
+                        images: [
+                          "https://bpic.588ku.com/back_origin_min_pic/22/08/22/1905061e68e3ec0669d0311723c98750.jpg!/fw/750/quality/99/unsharp/true/compress/true"
+                        ]
+                    },
+                    {
+                        date: "2024-04-15",
+                        title: "施肥",
+                        location: "绿野有机农场, 山东济南",
+                        description: "施用有机肥料，促进西红柿生长。",
+                        icon: "fa-solid fa-fertilizer",
+                        images: []
+                    },
+                    {
+                        date: "2024-05-20",
+                        title: "病虫害防治",
+                        location: "绿野有机农场, 山东济南",
+                        description: "采用生物防治方法，预防病虫害。",
+                        icon: "fa-solid fa-bug-slash",
+                        images: []
+                    },
+                    {
+                        date: "2024-06-15",
+                        title: "采收",
+                        location: "绿野有机农场, 山东济南",
+                        description: "人工采收成熟西红柿，确保品质。",
+                        icon: "fa-solid fa-basket-shopping",
+                        images: [
+                            "https://n.sinaimg.cn/spider20221027/302/w1080h822/20221027/a9da-4dd6ebaba521ca1504ba0706f5239d21.jpg"
+                        ]
+                    },
+                    {
+                        date: "2024-06-16",
+                        title: "包装",
+                        location: "绿野有机农场, 山东济南",
+                        description: "使用环保包装材料，保证运输安全。",
+                        icon: "fa-solid fa-box",
+                        images: []
+                    },
+                    {
+                        date: "2024-06-17",
+                        title: "运输",
+                        location: "山东济南 → 北京",
+                        description: "全程冷链运输，确保新鲜度。",
+                        icon: "fa-solid fa-truck",
+                        images: ["https://img.doooor.com/img/forum/201311/01/202900qgn277gygyl2c4yb.jpg"]
+                    },
+                    {
+                        date: "2024-06-18",
+                        title: "上架销售",
+                        location: "北京某超市",
+                        description: "产品上架销售，供消费者选购。",
+                        icon: "fa-solid fa-store",
+                        images: ["https://ts1.tc.mm.bing.net/th/id/R-C.9e5f517e766e84b9b79d8cdaa342e957?rik=HFyRyrd294fiMA&riu=http%3a%2f%2fn.sinaimg.cn%2fsinakd20117%2f400%2fw1200h800%2f20230505%2f5537-a3425421ed79561c939e79750830a677.jpg&ehk=qd2Wc5vPwEKq0SYkh%2bPL7zgoqA1oDJOmICYGgMb0ADI%3d&risl=&pid=ImgRaw&r=0"]
+                    }
+                ],
+                qualityData: {
+                    pesticide: 0.02,
+                    metal: 0.08,
+                    vitamin: 22,
+                    freshness: 95
+                },
+                farmerInfo: {
+                    name: "张大爷",
+                    position: "农场主",
+                    avatar: "https://ts1.tc.mm.bing.net/th/id/R-C.65a7cf49062527574b46dc6ba3edbb6a?rik=B6%2f9blOWJLCK1A&riu=http%3a%2f%2fpic43.photophoto.cn%2f20170506%2f0470102348231008_b.jpg&ehk=E2MSZL%2bfE%2bsf2JxuC8F4OaYE%2b6icJ8k6bKgwWQnPRV4%3d&risl=&pid=ImgRaw&r=0",
+                    address: "山东省济南市历城区有机农业园区1号",
+                    phone: "138-1234-5678",
+                    certification: "有机认证(编号: ORG-2023-0123)",
+                    farmSize: "50亩",
+                    description: "绿野有机农场专注于有机蔬菜种植多年，采用绿色种植方法，保证农产品品质。"
+                }
+            },
+              "F-002": {
+                name: "无籽西瓜",
+                category: "水果类",
+                code: "F-002",
+                productionDate: "2025-06-15",
+                productionBase: "阳光农场",
+                imageUrl: "https://img.alicdn.com/bao/uploaded/i1/391397422/O1CN014wAwJ224hKKqOfvdL_!!391397422.jpg",
+                traceTimeline: [
+                    {
+                        date: "2024-03-01",
+                        title: "播种",
+                        location: "阳光农场, 海南三亚",
+                        description: "精心挑选优质无籽西瓜种子。",
+                        icon: "fa-solid fa-seedling",
+                        images: [
+                            "https://img95.699pic.com/photo/50007/8117.jpg_wh860.jpg"
+                        ]
+                    },
+                    {
+                        date: "2024-05-10",
+                        title: "施肥灌溉",
+                        location: "阳光农场, 海南三亚",
+                        description: "定期施肥和灌溉，确保西瓜茁壮成长。",
+                        icon: "fa-solid fa-fertilizer",
+                        images: ["https://tse1-mm.cn.bing.net/th/id/OIP-C.Uf3BNYcixs5BWTXtmNLolQHaFf?rs=1&pid=ImgDetMain"]
+                    },
+                    {
+                        date: "2024-06-20",
+                        title: "病虫害防治",
+                        location: "阳光农场, 海南三亚",
+                        description: "采用生物防治方法，预防病虫害。",
+                        icon: "fa-solid fa-bug-slash",
+                        images: []
+                    },
+                    {
+                        date: "2024-08-10",
+                        title: "采收",
+                        location: "阳光农场, 海南三亚",
+                        description: "人工采收成熟的无籽西瓜，确保品质。",
+                        icon: "fa-solid fa-basket-shopping",
+                        images: [
+                            "https://pic.uchis.com/uploadfile/201205f/2012051317310712023.jpg"
+                        ]
+                    },
+                    {
+                        date: "2024-08-11",
+                        title: "包装",
+                        location: "阳光农场, 海南三亚",
+                        description: "使用环保包装材料，保证运输安全。",
+                        icon: "fa-solid fa-box",
+                        images: ["https://tse3-mm.cn.bing.net/th/id/OIP-C.8XVoJ7A6zuAF-YSpMUGoNAHaE8?rs=1&pid=ImgDetMain"]
+                    },
+                    {
+                        date: "2024-08-12",
+                        title: "运输",
+                        location: "海南三亚 → 北京",
+                        description: "全程冷链运输，确保新鲜度。",
+                        icon: "fa-solid fa-truck",
+                        images: []
+                    },
+                    {
+                        date: "2024-08-13",
+                        title: "上架销售",
+                        location: "北京某超市",
+                        description: "产品上架销售，供消费者选购。",
+                        icon: "fa-solid fa-store",
+                        images: ["https://bpic.588ku.com/back_origin_min_pic/21/08/27/1d61f4b69f8c63068c66862c7fdb26a7.jpg"]
+                    }
+                ],
+                qualityData: {
+                    pesticide: 0.02,
+                    metal: 0.08,
+                    vitamin: 22,
+                    freshness: 95
+                },
+                farmerInfo: {
+                    name: "赵师傅",
+                    position: "农场技术员",
+                    avatar: "https://ts1.tc.mm.bing.net/th/id/R-C.65a7cf49062527574b46dc6ba3edbb6a?rik=B6%2f9blOWJLCK1A&riu=http%3a%2f%2fpic43.photophoto.cn%2f20170506%2f0470102348231008_b.jpg&ehk=E2MSZL%2bfE%2bsf2JxuC8F4OaYE%2b6icJ8k6bKgwWQnPRV4%3d&risl=&pid=ImgRaw&r=0",
+                    address: "海南省三亚市天涯区农场路1号",
+                    phone: "137-8901-2345",
+                    certification: "有机认证(编号: ORG-2024-0567)",
+                    farmSize: "120亩",
+                    description: "阳光农场专注于优质水果种植，采用绿色、科学的种植方法，保证水果品质。"
+                }
+            },
+  
+            "F-003": {
+                name: "有机草莓",
+                category: "水果类",
+                code: "F-003",
+                productionDate: "2024-05-20",
+                productionBase: "田园草莓园",
+                imageUrl: "https://bpic.588ku.com/back_origin_min_pic/19/10/22/09ac0af0623757d12e796af7dd252c29.jpg!/fw/750/quality/99/unsharp/true/compress/true",
+                traceTimeline: [
+                    {
+                        date: "2024-02-15",
+                        title: "育苗",
+                        location: "田园草莓园, 江苏南京",
+                        description: "选用优质有机草莓苗，采用无土栽培技术，确保幼苗健康无病害。",
+                        icon: "fa-solid fa-seedling",
+                        images: [
+                            "https://ts1.tc.mm.bing.net/th/id/R-C.70bbb6f016901f4a51891e2b0c9a0655?rik=5eIIVlTFklMgNA&riu=http%3a%2f%2fwww.sgrhny.com%2fupfile%2f202103%2f2021030935255145.jpg&ehk=yDYnDacpVsbLsyYM4nmc%2ff9Y6qElulJjt6JHlThY2Zo%3d&risl=&pid=ImgRaw&r=0"
+                        ]
+                    },
+                    {
+                        date: "2024-03-10",
+                        title: "移栽",
+                        location: "田园草莓园, 江苏南京",
+                        description: "将幼苗移栽至温室大棚，控制适宜温度和湿度，采用滴灌技术。",
+                        icon: "fa-solid fa-tree",
+                        images: []
+                    },
+                    {
+                        date: "2024-04-05",
+                        title: "开花期管理",
+                        location: "田园草莓园, 江苏南京",
+                        description: "人工辅助授粉，引入蜜蜂提高授粉率，严格控制温湿度。",
+                        icon: "fa-solid fa-flower",
+                        images: [
+                            "https://ts1.tc.mm.bing.net/th/id/R-C.70bbb6f016901f4a51891e2b0c9a0655?rik=5eIIVlTFklMgNA&riu=http%3a%2f%2fwww.sgrhny.com%2fupfile%2f202103%2f2021030935255145.jpg&ehk=yDYnDacpVsbLsyYM4nmc%2ff9Y6qElulJjt6JHlThY2Zo%3d&risl=&pid=ImgRaw&r=0"
+                        ]
+                    },
+                    {
+                        date: "2024-04-25",
+                        title: "结果期管理",
+                        location: "田园草莓园, 江苏南京",
+                        description: "定期检查果实生长情况，使用物理方法防治害虫，施用有机肥料。",
+                        icon: "fa-solid fa-apple-whole",
+                        images: ["https://cos3.solepic.com/20210114/b_2757917202101141623273276.jpg"]
+                    },
+                    {
+                        date: "2024-05-15",
+                        title: "质量检测",
+                        location: "田园草莓园, 江苏南京",
+                        description: "采收前进行糖度、农药残留等检测，各项指标均达到有机标准。",
+                        icon: "fa-solid fa-clipboard-check",
+                        images: []
+                    },
+                    {
+                        date: "2024-05-20",
+                        title: "采收",
+                        location: "田园草莓园, 江苏南京",
+                        description: "人工采收成熟草莓，轻拿轻放，避免损伤果实。",
+                        icon: "fa-solid fa-basket-shopping",
+                        images: [
+                            "https://img95.699pic.com/photo/50328/3024.jpg_wh860.jpg"
+                        ]
+                    },
+                    {
+                        date: "2024-05-21",
+                        title: "包装",
+                        location: "田园草莓园, 江苏南京",
+                        description: "使用防震保鲜盒包装，每盒250g，贴上溯源二维码。",
+                        icon: "fa-solid fa-box",
+                        images: ["https://img.alicdn.com/i3/11591851/O1CN01WLv0UP1PXnljTWoEo_!!11591851.jpg"]
+                    },
+                    {
+                        date: "2024-05-22",
+                        title: "运输",
+                        location: "江苏南京 → 上海",
+                        description: "全程冷链运输，温度保持在2 - 4℃，确保草莓新鲜度。",
+                        icon: "fa-solid fa-truck",
+                        images: []
+                    },
+                    {
+                        date: "2024-05-23",
+                        title: "上架销售",
+                        location: "上海有机食品专卖店",
+                        description: "产品上架销售，存储温度4℃，保质期5天。",
+                        icon: "fa-solid fa-store",
+                        images: ["https://tse4-mm.cn.bing.net/th/id/OIP-C.cSYhsE7lHqEd9R0GaChmvwHaFj?rs=1&pid=ImgDetMain"]
+                    }
+                ],
+                qualityData: {
+                    pesticide: 0.01,
+                    metal: 0.05,
+                    sugar: 12,
+                    freshness: 98,
+                    vitamin: 58
+                },
+                farmerInfo: {
+                    name: "李小红",
+                    position: "果园经理",
+                    avatar: "https://ts1.tc.mm.bing.net/th/id/R-C.65a7cf49062527574b46dc6ba3edbb6a?rik=B6%2f9blOWJLCK1A&riu=http%3a%2f%2fpic43.photophoto.cn%2f20170506%2f0470102348231008_b.jpg&ehk=E2MSZL%2bfE%2bsf2JxuC8F4OaYE%2b6icJ8k6bKgwWQnPRV4%3d&risl=&pid=ImgRaw&r=0",
+                    address: "江苏省南京市溧水区有机农业园区6号",
+                    phone: "139-8765-4321",
+                    certification: "有机认证(编号: ORG-2023-0789)",
+                    farmSize: "80亩",
+                    description: "田园草莓园专注于有机草莓种植8年，采用先进的温室大棚技术和生态种植方法。我们坚持自然成熟，不使用催熟剂，确保每颗草莓都香甜可口、营养丰富。"
+                }
+            },
+            "RL-003": {
+                name: "散养柴鸡",
+                category: "动物农产品",
+                code: "RL-003",
+                productionDate: "2023-07-10",
+                productionBase: "山林养殖基地",
+                imageUrl: "https://pic.nximg.cn/file/20160901/4732519_091844997537_2.jpg",
+                traceTimeline: [
+                    {
+                        date: "2024-03-15",
+                        title: "鸡苗引进",
+                        location: "山林养殖基地, 河北保定",
+                        description: "从正规鸡苗供应商引进优质柴鸡苗。",
+                        icon: "fa-solid fa-egg",
+                        images: [
+                            "https://tse2-mm.cn.bing.net/th/id/OIP-C.zPXAo4rd6wWDW-HMD0JwFAHaEU?rs=1&pid=ImgDetMain"
+                        ]
+                    },
+                    {
+                        date: "2024-04-01",
+                        title: "育雏阶段",
+                        location: "山林养殖基地, 河北保定",
+                        description: "在育雏室进行精心照料，控制温度和湿度，提供优质饲料。",
+                        icon: "fa-solid fa-house-chimney",
+                        images: ["https://files.nxin.com/public/jiagong/2019/11/28/7b/6615477b-b0f1-4d54-baeb-ddff277d4932_m.jpg"]
+                    },
+                    {
+                        date: "2024-05-10",
+                        title: "山林放养",
+                        location: "山林养殖基地, 河北保定",
+                        description: "将鸡苗放入山林进行自然放养，让其自由觅食。",
+                        icon: "fa-solid fa-tree",
+                        images: [
+                            "https://cbu01.alicdn.com/img/ibank/O1CN016q4hhu23K8djG9afS_!!2212500337236-0-cib.jpg"
+                        ]
+                    },
+                    {
+                        date: "2024-06-20",
+                        title: "疫苗接种",
+                        location: "山林养殖基地, 河北保定",
+                        description: "按照免疫程序进行疫苗接种，预防疾病。",
+                        icon: "fa-solid fa-syringe",
+                        images: ["https://pic.vjshi.com/2018-08-31/8f14e8e61b8faaa4cef7710c7dea4079/online/main.jpg?x-oss-process=style/w342_h192_center"]
+                    },
+                    {
+                        date: "2024-07-10",
+                        title: "出栏屠宰",
+                        location: "山林养殖基地, 河北保定",
+                        description: "达到出栏标准后进行屠宰，严格检验检疫。",
+                        icon: "fa-solid fa-cut",
+                        images: [
+                            "https://nfassetoss.southcn.com/__asset/dd82f954fb/ae26aa31d7.jpg"
+                        ]
+                    },
+                    {
+                        date: "2024-07-11",
+                        title: "包装加工",
+                        location: "山林养殖基地, 河北保定",
+                        description: "采用真空包装，确保鸡肉新鲜卫生。",
+                        icon: "fa-solid fa-box",
+                        images: []
+                    },
+                    {
+                        date: "2024-07-12",
+                        title: "运输销售",
+                        location: "河北保定 → 天津",
+                        description: "冷藏运输到销售地，尽快上架销售。",
+                        icon: "fa-solid fa-truck",
+                        images: []
+                    }
+
+                ],
+                qualityData: {
+                    veterinaryDrug: 0.005,
+                    metal: 0.03,
+                    vitamin: 15,
+                    freshness: 92
+                },
+                farmerInfo: {
+                    name: "王大叔",
+                    position: "养殖负责人",
+                    avatar: "https://ts1.tc.mm.bing.net/th/id/R-C.65a7cf49062527574b46dc6ba3edbb6a?rik=B6%2f9blOWJLCK1A&riu=http%3a%2f%2fpic43.photophoto.cn%2f20170506%2f0470102348231008_b.jpg&ehk=E2MSZL%2bfE%2bsf2JxuC8F4OaYE%2b6icJ8k6bKgwWQnPRV4%3d&risl=&pid=ImgRaw&r=0",
+                    phone: "136-2345-6789",
+                    certification: "绿色食品认证(编号: GRN-2023-0456)",
+                    farmSize: "150亩",
+                    description: "山林养殖基地采用自然放养方式，为柴鸡提供优质的生长环境，保证鸡肉品质。"
+                }
+            }
+        };
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function () {
+            // 默认显示西红柿数据
+            let currentProductCode = "F-001";
+            let productData = productsData[currentProductCode];
+
+            // 填充产品信息函数
+            function fillProductInfo(data) {
+                // 填充产品基本信息
+                document.getElementById('product-name').textContent = data.name;
+                document.getElementById('product-category').textContent = data.category;
+                document.getElementById('product-code').textContent = data.code;
+                document.getElementById('production-date').textContent = data.productionDate;
+                document.getElementById('production-base').textContent = data.productionBase;
+                document.getElementById('product-image').src = data.imageUrl;
+
+                // 填充质量检测数据
+                document.getElementById('veterinary-drug-value').textContent = data.qualityData.veterinaryDrug || 0;
+                document.getElementById('metal-value').textContent = data.qualityData.metal;
+
+                // 根据产品类型显示不同的质量指标
+                if (data.category === "水果类") {
+                    document.getElementById('vitamin-label').textContent = "维生素C含量";
+                    document.getElementById('vitamin-value').textContent = data.qualityData.vitamin;
+                    document.getElementById('sugar-value').textContent = data.qualityData.sugar;
+                    document.getElementById('sugar-row').style.display = 'table-row';
+                } else {
+                    document.getElementById('vitamin-label').textContent = "维生素含量";
+                    document.getElementById('vitamin-value').textContent = data.qualityData.vitamin;
+                    document.getElementById('sugar-row').style.display = 'none';
+                }
+
+                document.getElementById('freshness-value').textContent = data.qualityData.freshness;
+
+                // 填充生产者信息
+                document.getElementById('farmer-name').textContent = data.farmerInfo.name;
+                document.getElementById('farmer-position').textContent = data.farmerInfo.position;
+                document.getElementById('farmer-avatar').src = data.farmerInfo.avatar;
+                document.getElementById('farm-address').textContent = data.farmerInfo.address;
+                document.getElementById('farm-phone').textContent = data.farmerInfo.phone;
+                document.getElementById('farm-certification').textContent = data.farmerInfo.certification;
+                document.getElementById('farm-size').textContent = data.farmerInfo.farmSize;
+                document.getElementById('farm-description').textContent = data.farmerInfo.description;
+
+                // 生成溯源时间线
+                const timelineElement = document.getElementById('trace-timeline');
+                timelineElement.innerHTML = ''; // 清空原有时间线
+
+                data.traceTimeline.forEach(item => {
+                    const timelineItem = document.createElement('div');
+                    timelineItem.className = 'trace-item mb-4';
+
+                    let imagesHTML = '';
+                    if (item.images && item.images.length > 0) {
+                        imagesHTML = '<div class="mt-2 flex flex-wrap">';
+                        item.images.forEach(img => {
+                            imagesHTML += `<img src="${img}" class="img-thumbnail mr-2 mb-2 w-20 h-20 object-cover rounded-md" alt="${item.title}">`;
+                        });
+                        imagesHTML += '</div>';
+                    }
+
+                    timelineItem.innerHTML = `
+                        <div class="trace-content">
+                            <div class="flex justify-between items-center mb-1">
+                                <h5 class="text-lg font-bold text-gray-800"><i class="${item.icon} mr-2"></i> ${item.title}</h5>
+                                <small class="text-gray-500">${item.date}</small>
+                            </div>
+                            <p class="text-gray-600 mb-1"><i class="fa-solid fa-location-dot mr-1"></i> ${item.location}</p>
+                            <p class="text-gray-700">${item.description}</p>
+                            ${imagesHTML}
+                        </div>
+                    `;
+
+                    timelineElement.appendChild(timelineItem);
+                });
+            }
+
+            // 初始填充数据
+            fillProductInfo(productData);
+
+            // 查询按钮事件
+            document.getElementById('search-btn').addEventListener('click', function () {
+                const traceCode = document.getElementById('trace-code').value.trim();
+                if (traceCode) {
+                    if (productsData[traceCode]) {
+                        currentProductCode = traceCode;
+                        productData = productsData[traceCode];
+                        fillProductInfo(productData);
+                    } else {
+                        alert(`溯源码 ${traceCode} 不存在`);
+                    }
+                } else {
+                    alert('请输入有效的溯源码');
+                }
+            });
+        });
+
+        // 示例查询函数
+        function fetchProductData(traceCode) {
+            // 在实际应用中这里会调用API获取数据
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve(productsData[traceCode] || null);
+                }, 500);
+            });
+        }
+    </script>
+</body>
+
+</html>
+    
